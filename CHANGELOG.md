@@ -1,0 +1,34 @@
+# Changelog
+
+## 1.0.0
+
+First release.
+
+- `M91Client` — verify, send, getAlert, waitForDecision, close, requestApproval,
+  against a channel send link.
+- `M91Platform` — verify the key, invite and alert one person by phone number,
+  and provision team channels, with an API key.
+- `M91URLBuilder` — the GET form, for anything whose only field is "URL to call".
+- Integrations: LangChain, LangGraph and the Vercel AI SDK.
+
+Zero runtime dependencies: native `fetch`, Node 18+. Every framework adapter
+imports its framework lazily, so installing this package pulls in none of them.
+
+Four behaviours worth calling out, because they are the ones that differ from
+what a hand-rolled wrapper around `fetch` usually does:
+
+- **A send that reaches nobody throws `M91DeliveryError`.** `delivered` counts
+  phones actually sent to, not the size of the roster, so a channel whose device
+  tokens are all stale answers 201 and wakes nobody. This applies to
+  `alertPerson` as well as `send`, and matters more there: a direct alert has a
+  roster of one. Pass `{ throwOnZeroDelivery: false }` to opt out.
+- **`close()` treats 404 and 403 as success.** Nothing left to close is the
+  state the caller asked for.
+- **`waitForDecision()` reads `decision` only.** A PERSONAL response ("Seen")
+  never ends the wait, because "Seen" must never read as "Approved".
+- **`verify()` on both clients tests a credential without waking anybody.**
+  `M91Client.verify()` pings the send link; `M91Platform.verify()` calls
+  `GET /api/v1/me` and names the key and its owner.
+- **The send token is redacted from every string the SDK produces** — `toString`,
+  error messages and tool results — including text written by the runtime, which
+  can name the URL a request failed on.
