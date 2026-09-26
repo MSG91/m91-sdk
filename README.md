@@ -171,9 +171,9 @@ a single phone in it.
 `send`. It matters more here: a direct alert has a roster of one, so a single
 stale device token is the difference between waking somebody and waking nobody.
 
-**[When you need the API key](../API_KEY_USE_CASES.md)** works through the cases
-it exists for — per-user alerting, per-tenant channels, roster sync — and the
-much larger set where a send link is the right answer.
+The cases an API key exists for — per-user alerting, per-tenant channels, roster
+sync — and the much larger set where a send link is the right answer, are worked
+through at **<https://m91.msg91.com/docs>**.
 
 ---
 
@@ -199,10 +199,22 @@ for a package whose job is to work when everything else is on fire.
 
 The tool descriptions tell the model when to reach for each one. Your system
 prompt still has to say that approval is **required** before irreversible
-actions, and to list them — see [`examples/langchain-agent.ts`](examples/langchain-agent.ts).
+actions, and to list them — see `examples/langchain-agent.ts` in the repository.
 
 `createM91ApprovalTool` returns a tool that answers `"approved"`, `"rejected"`
 or `"error: …"`. Nothing but a real approval returns `"approved"`.
+
+**Set the defaults where the tool is built, not in the prompt** — how long
+somebody has to wake up is an operations decision, not the model's:
+
+```ts
+await createM91ApprovalTool(client, {
+  severity: 'CRITICAL',
+  approveLabel: 'Deploy',
+  rejectLabel: 'Hold release',
+  timeoutSeconds: 900,
+});
+```
 
 ---
 
@@ -407,11 +419,8 @@ cd ../demo && python3 run_node_demo.py
 
 ## Examples
 
-[`basic-alert.ts`](examples/basic-alert.ts) ·
-[`approval-gate.ts`](examples/approval-gate.ts) ·
-[`langchain-agent.ts`](examples/langchain-agent.ts) ·
-[`langgraph-hitl.ts`](examples/langgraph-hitl.ts) ·
-[`vercel-ai-agent.ts`](examples/vercel-ai-agent.ts) ·
-[`webhook-urls.ts`](examples/webhook-urls.ts)
+The `examples/` directory in the repository covers a basic alert, the approval
+gate, a LangChain agent, the LangGraph `interrupt()` pattern, a Vercel AI SDK
+agent, and webhook URLs for Grafana and friends.
 
-Full API documentation: **https://m91.msg91.com/docs**
+Full API documentation: **<https://m91.msg91.com/docs>**

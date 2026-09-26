@@ -4,6 +4,7 @@
   "description": "Critical alerting and human-in-the-loop approval for AI agents and on-call systems",
   "type": "module",
   "license": "MIT",
+  "author": "MSG91",
   "keywords": [
     "alerting",
     "on-call",
