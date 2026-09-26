@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 
 import {
   M91AuthError,
+  M91ForbiddenError,
   M91DeliveryError,
   M91NotFoundError,
   M91ValidationError,
@@ -200,6 +201,20 @@ describe('closeAlert', () => {
   it('treats 404 as success', async () => {
     const rec = new Recorder().push(err('NOT_FOUND', 'alert_not_found', 404));
     assert.equal(await platform(rec).closeAlert(PHONE, { customId: 'gone' }), true);
+  });
+
+  it('treats 403 already_resolved as success', async () => {
+    // Found in production: closing an already-closed alert answers 403
+    // already_resolved, and this path used to let it escape while
+    // M91Client.close() swallowed it. Two clients, one contract.
+    const rec = new Recorder().push(err('FORBIDDEN', 'already_resolved', 403));
+    assert.equal(await platform(rec).closeAlert(PHONE, { customId: 'x' }), true);
+  });
+
+  it('does NOT swallow a 403 on remove', async () => {
+    // Deliberately not symmetric: there, 403 means the channel is not yours.
+    const rec = new Recorder().push(err('FORBIDDEN', 'not your channel', 403));
+    await assert.rejects(platform(rec).removeMember('ch1', PHONE), M91ForbiddenError);
   });
 
   it('rejects neither identifier', async () => {

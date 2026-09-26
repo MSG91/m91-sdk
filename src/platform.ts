@@ -18,7 +18,7 @@
  * credentials.
  */
 
-import { M91NotFoundError, M91ValidationError } from './exceptions.js';
+import { M91ForbiddenError, M91NotFoundError, M91ValidationError } from './exceptions.js';
 import { Transport, type TransportOptions } from './http.js';
 import {
   type AlertDetail,
@@ -191,7 +191,12 @@ export class M91Platform {
     }
   }
 
-  /** Close one person's alert. 404 is success, as everywhere else. */
+  /**
+   * Close one person's alert.
+   *
+   * **404 and 403 are success**, as on the send link: "no such alert" and
+   * "already resolved" both mean it is not open, which is what was asked for.
+   */
   async closeAlert(
     phone: string,
     options: { customId?: string; alertId?: string },
@@ -202,11 +207,21 @@ export class M91Platform {
         `closeAlert() needs exactly one of customId or alertId — got ${customId ? 'both' : 'neither'}`,
       );
     }
-    return this.tolerateMissing({
-      method: 'POST',
-      url: this.url('/alerts/close'),
-      body: { phone: validatePhone(phone), ...(customId ? { customId } : { alertId }) },
-    });
+    try {
+      await this.http.request({
+        method: 'POST',
+        url: this.url('/alerts/close'),
+        body: { phone: validatePhone(phone), ...(customId ? { customId } : { alertId }) },
+      });
+    } catch (error) {
+      // 403 as well as 404, matching M91Client.close(). Production answers 403
+      // `already_resolved` when the alert is closed already, and "it is closed"
+      // is the state the caller asked for. Only close gets this: on a REMOVE a
+      // 403 means the channel is not yours, which must not be swallowed.
+      if (error instanceof M91NotFoundError || error instanceof M91ForbiddenError) return true;
+      throw error;
+    }
+    return true;
   }
 
   /**
