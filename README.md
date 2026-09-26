@@ -199,7 +199,7 @@ for a package whose job is to work when everything else is on fire.
 
 The tool descriptions tell the model when to reach for each one. Your system
 prompt still has to say that approval is **required** before irreversible
-actions, and to list them — see `examples/langchain-agent.ts` in the repository.
+actions, and to list them — see `examples/langchain-agent.ts`, included with the SDK.
 
 `createM91ApprovalTool` returns a tool that answers `"approved"`, `"rejected"`
 or `"error: …"`. Nothing but a real approval returns `"approved"`.
@@ -419,7 +419,7 @@ cd ../demo && python3 run_node_demo.py
 
 ## Examples
 
-The `examples/` directory in the repository covers a basic alert, the approval
+The `examples/` directory included with the SDK covers a basic alert, the approval
 gate, a LangChain agent, the LangGraph `interrupt()` pattern, a Vercel AI SDK
 agent, and webhook URLs for Grafana and friends.
 

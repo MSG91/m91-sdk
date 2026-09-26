@@ -38,6 +38,7 @@
   "files": [
     "dist/src",
     "src",
+    "examples",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
