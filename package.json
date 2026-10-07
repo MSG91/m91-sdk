@@ -1,6 +1,6 @@
 {
   "name": "m91",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Critical alerting and human-in-the-loop approval for AI agents and on-call systems",
   "type": "module",
   "license": "MIT",
@@ -15,9 +15,12 @@
     "escalation"
   ],
   "homepage": "https://m91.msg91.com",
+  "repository": { "type": "git", "url": "git+https://github.com/walkover101/m91-sdk.git" },
+  "bugs": { "url": "https://github.com/walkover101/m91-sdk/issues" },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
+    "./package.json": "./package.json",
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"

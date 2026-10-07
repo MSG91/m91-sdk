@@ -69,7 +69,9 @@ export type {
   AlertStatus,
   ApiKeyInfo,
   ChannelInfo,
+  Attachment,
   Decision,
+  Response,
   Effect,
   InviteResult,
   ProvisionedChannel,
@@ -79,4 +81,11 @@ export type {
   Severity,
 } from './models.js';
 
-export const VERSION = '1.0.0';
+/**
+ * Kept in step with package.json by `tests/version.test.ts`, not by hand.
+ *
+ * ESM has no portable way to read package.json at runtime, so this number is
+ * written twice — and it drifted, reporting 1.0.0 while the package shipped as
+ * 1.1.0. A test is what makes two copies safe.
+ */
+export const VERSION = '1.1.0';

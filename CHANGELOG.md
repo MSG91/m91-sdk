@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.0
+
+Three gaps where the server had grown a field and the SDK had not, so the only
+route to a value you had explicitly asked for was the raw body.
+
+**Nothing breaks.** `AlertDetail.responses` holds typed objects now, and they
+still answer to `r["label"]` and `r.get("note")` — the spelling callers already
+use — so upgrading changes nothing you have written. (Python; in Node they were
+`unknown[]`, which required a cast either way.)
+
+### Added
+
+- `send({ attachments: [...] })` — https links to files the alert is about. URLs,
+  never bytes, because every automation a send link is pasted into has a URL
+  field and little else. Validated locally so a typo costs no round trip.
+- `send({ callbackUrl: ... })` — where the outcome is POSTed when somebody answers.
+- `Response.note` and `Response.attachments`, the two things a sender can
+  require before an option may be chosen.
+- `AlertDetail.attachments` and `AlertDetail.pending`.
+- `Attachment` and `Response` types.
+- `M91Platform.listChannels()` — the
+  missing half of the non-idempotent `create_channel`. A platform that lost the
+  response to a create had an orphaned channel and no way to find it.
+
+
 ## 1.0.0
 
 First release.

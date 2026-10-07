@@ -64,6 +64,15 @@ export interface SendOptions {
    */
   isAutoClose?: boolean;
   responseOptions?: Array<ResponseOption | string>;
+  /**
+   * Whether the free-text "Something else" reply is offered. Tri-state: leave
+   * it unset and the server's default (on) stands.
+   */
+  other?: boolean;
+  /** https links to files the alert is about. URLs, never bytes. */
+  attachments?: string[];
+  /** Where the outcome is POSTed when somebody answers. */
+  callbackUrl?: string;
 }
 
 export interface WaitOptions {

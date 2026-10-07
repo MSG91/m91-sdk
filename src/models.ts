@@ -30,13 +30,19 @@ export const TITLE_MAX = 2000;
 export const DESCRIPTION_MAX = 2000;
 export const CUSTOM_ID_MAX = 200;
 export const LABEL_MAX = 24;
-export const MAX_RESPONSE_OPTIONS = 20;
+export const ATTACHMENT_URL_MAX = 2000;
+const CALLBACK_URL_MAX = 2000;
+const MAX_RESPONSE_OPTIONS = 20;
 export const MAX_LINK_RESPONSE_OPTIONS = 6;
 export const CHANNEL_NAME_MAX = 80;
 export const MAX_MEMBERS_PER_CALL = 500;
 
 /** Mirrors `validation/common.js` — digits only, country code included, no `+`. */
 const PHONE_RE = /^\d{8,15}$/;
+
+/** The only two things an option may ask somebody to supply. */
+export const COLLECTABLE = ['note', 'attachment'] as const;
+export type Collectable = (typeof COLLECTABLE)[number];
 
 /**
  * One button on the alert screen.
@@ -48,6 +54,13 @@ const PHONE_RE = /^\d{8,15}$/;
 export interface ResponseOption {
   label: string;
   effect?: Effect;
+  /**
+   * What answering this option MUST supply. The person cannot choose it until
+   * they have.
+   */
+  required?: Collectable[];
+  /** Offered and skippable, shown with "(optional)" on its own field. */
+  optional?: Collectable[];
 }
 
 /**
@@ -102,6 +115,44 @@ export interface AlertResponse {
   raw: Record<string, unknown>;
 }
 
+/**
+ * A file on an alert or on somebody's answer.
+ *
+ * `url` is a plain, permanent link — the backend stores responders' files and
+ * serves them unsigned, so it can be cached, logged and opened long after the
+ * alert is closed. A sender's own attachments are the URLs it supplied,
+ * unchanged and never copied.
+ */
+export interface Attachment {
+  url: string;
+  name: string | null;
+  type: string | null;
+  size: number | null;
+}
+
+/**
+ * One person's answer, with whatever they supplied alongside it.
+ *
+ * TYPED, because `note` and `attachments` were unreachable otherwise. A sender
+ * can require a note or a file before an option may be chosen, and the server
+ * returns both here — but `responses` was `unknown[]`, so the only way to read
+ * the thing you had demanded was to cast `raw`. A field a caller is told to
+ * require and then cannot read is not a feature.
+ *
+ * `by` is an opaque user id — never a phone number, never a name.
+ */
+export interface Response {
+  label: string | null;
+  effect: string;
+  optionIndex: number | null;
+  at: string | null;
+  by: string | null;
+  /** What they typed, when the option asked for it. */
+  note: string | null;
+  /** What they attached. Empty when none was asked for, or none was given. */
+  attachments: Attachment[];
+}
+
 /** What a read-back returns. Poll `decision`, never `responses[0]`. */
 export interface AlertDetail {
   id: string;
@@ -113,7 +164,11 @@ export interface AlertDetail {
   reopenCount: number;
   responseOptions: ResponseOption[];
   /** Every response, personal and shared. Not how you decide anything. */
-  responses: unknown[];
+  responses: Response[];
+  /** The sender's own attachments, exactly as supplied. Links, never copies. */
+  attachments: Attachment[];
+  /** Recipients who have not answered yet — reached minus answered. */
+  pending: number;
   decision: Decision | null;
   resolvedAt: string | null;
   createdAt: string | null;
@@ -197,7 +252,17 @@ const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 function parseOptions(value: unknown): ResponseOption[] {
   return arr(value).map((o) => {
     const raw = asRaw(o);
-    return { label: String(raw.label ?? ''), effect: (raw.effect as Effect) ?? 'SHARED' };
+    const option: ResponseOption = {
+      label: String(raw.label ?? ''),
+      effect: (raw.effect as Effect) ?? 'SHARED',
+    };
+    // Absent means "asks for nothing", and the server omits the key then — so
+    // these are only set when they are real, matching what goes out.
+    const required = arr(raw.required).map(String) as Collectable[];
+    const optional = arr(raw.optional).map(String) as Collectable[];
+    if (required.length) option.required = required;
+    if (optional.length) option.optional = optional;
+    return option;
   });
 }
 
@@ -238,6 +303,31 @@ export function parseAlertResponse(value: unknown): AlertResponse {
   };
 }
 
+/** A sender's attachments arrive as bare strings; a responder's as objects. */
+export function parseAttachment(value: unknown): Attachment {
+  if (typeof value === 'string') return { url: value, name: null, type: null, size: null };
+  const raw = asRaw(value);
+  return {
+    url: String(raw.url ?? ''),
+    name: str(raw.name),
+    type: str(raw.type),
+    size: raw.size === undefined || raw.size === null ? null : num(raw.size),
+  };
+}
+
+export function parseResponse(value: unknown): Response {
+  const raw = asRaw(value);
+  return {
+    label: str(raw.label),
+    effect: String(raw.effect ?? 'PERSONAL'),
+    optionIndex: raw.optionIndex === undefined || raw.optionIndex === null ? null : num(raw.optionIndex),
+    at: str(raw.at),
+    by: str(raw.by),
+    note: str(raw.note),
+    attachments: arr(raw.attachments).map(parseAttachment),
+  };
+}
+
 export function parseAlertDetail(value: unknown): AlertDetail {
   const raw = asRaw(value);
   const decision = parseDecision(raw.decision);
@@ -251,7 +341,9 @@ export function parseAlertDetail(value: unknown): AlertDetail {
     isAutoClose: raw.isAutoClose === true,
     reopenCount: num(raw.reopenCount),
     responseOptions: parseOptions(raw.responseOptions),
-    responses: arr(raw.responses),
+    responses: arr(raw.responses).map(parseResponse),
+    attachments: arr(raw.attachments).map(parseAttachment),
+    pending: num(raw.pending),
     decision,
     resolvedAt: str(raw.resolvedAt),
     createdAt: str(raw.createdAt),
@@ -343,6 +435,17 @@ export interface AlertFields {
   customId?: string;
   isAutoClose?: boolean;
   responseOptions?: Array<ResponseOption | string>;
+  /**
+   * Whether the free-text "Something else" reply is offered.
+   *
+   * Defaults ON at the server, so this is tri-state: leave it undefined and
+   * the server's default stands; only an explicit `false` turns it off.
+   */
+  other?: boolean;
+  /** https links to files the alert is about. URLs, never bytes — see below. */
+  attachments?: string[];
+  /** Where the outcome is POSTed when somebody answers. */
+  callbackUrl?: string;
 }
 
 /**
@@ -372,6 +475,48 @@ export function buildAlertPayload(
 
   const severity = checkSeverity(fields.severity ?? 'MEDIUM');
   const payload: Record<string, unknown> = { title: cleanTitle, severity };
+
+  if (fields.other !== undefined && fields.other !== null) {
+    payload.other = Boolean(fields.other);
+  }
+
+  /*
+   * URLs, never bytes.
+   *
+   * The server takes links and not multipart, because every automation a send
+   * link is pasted into — viasocket, Zapier, Make, a spreadsheet — has a URL
+   * field and little else. Checked here so a typo costs nothing: a cron that
+   * gets a 400 will simply send it again.
+   */
+  if (fields.attachments?.length) {
+    const urls: string[] = [];
+    for (const item of fields.attachments) {
+      const url = collapse(String(item ?? ''));
+      if (!url) continue;
+      if (url.length > ATTACHMENT_URL_MAX) {
+        throw new M91ValidationError(
+          `attachment URL must be ${ATTACHMENT_URL_MAX} characters or fewer, got ${url.length}`,
+        );
+      }
+      if (!/^https:\/\//i.test(url)) {
+        throw new M91ValidationError(
+          `attachment must be an https link, got ${JSON.stringify(url)}`,
+        );
+      }
+      urls.push(url);
+    }
+    if (urls.length) payload.attachments = urls;
+  }
+
+  if (fields.callbackUrl !== undefined && fields.callbackUrl !== null) {
+    const callbackUrl = collapse(fields.callbackUrl);
+    if (callbackUrl.length > CALLBACK_URL_MAX) {
+      throw new M91ValidationError(
+        `callbackUrl must be ${CALLBACK_URL_MAX} characters or fewer, got ${callbackUrl.length}`,
+      );
+    }
+    if (callbackUrl) payload.callbackUrl = callbackUrl;
+  }
 
   if (fields.description !== undefined && fields.description !== null) {
     const description = collapse(fields.description);
@@ -416,12 +561,55 @@ export function normalizeOptions(options: Array<ResponseOption | string>): Respo
         `response option label must be ${LABEL_MAX} characters or fewer, got ${label.length}: '${label}'`,
       );
     }
-    const effect = raw.effect ?? 'SHARED';
+    const effect = (raw as ResponseOption).effect ?? 'SHARED';
     if (!EFFECTS.includes(effect)) {
       throw new M91ValidationError(`effect must be SHARED or PERSONAL, got '${effect}'`);
     }
-    return { label, effect };
+
+    const built: ResponseOption = { label, effect };
+    const required = collectFields((raw as ResponseOption).required, 'required');
+    const optional = collectFields((raw as ResponseOption).optional, 'optional');
+    const both = required.filter((f) => optional.includes(f));
+    if (both.length) {
+      // The server takes the stricter of the two, so this is a statement the
+      // sender did not mean. Saying so beats silently picking one.
+      throw new M91ValidationError(
+        `${both.join(', ')} cannot be both required and optional`,
+      );
+    }
+
+    /*
+     * Only what was set. A field in NEITHER list is not rendered at all, which
+     * is what stops an option configured for a photo putting an unwanted note
+     * box in front of somebody at 3am.
+     */
+    if (required.length) built.required = required;
+    if (optional.length) built.optional = optional;
+    return built;
   });
+}
+
+/**
+ * Normalise and check a `required` / `optional` list.
+ *
+ * Checked here because the server's enum error — "must be note or
+ * attachment" — arrives after a round trip, and the caller is usually a cron
+ * or an agent that will just send it again.
+ */
+function collectFields(value: unknown, which: string): Collectable[] {
+  if (!value) return [];
+  const items = Array.isArray(value) ? value : [value];
+  const out: Collectable[] = [];
+  for (const item of items) {
+    const name = collapse(String(item ?? '')).toLowerCase() as Collectable;
+    if (!COLLECTABLE.includes(name)) {
+      throw new M91ValidationError(
+        `${which} must contain only ${COLLECTABLE.join(' or ')}, got ${JSON.stringify(item)}`,
+      );
+    }
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
 }
 
 function checkOptions(options: ResponseOption[], maxOptions: number): ResponseOption[] {

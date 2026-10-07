@@ -236,6 +236,28 @@ export class M91Platform {
    * minting one channel per customer team has no reason for its own account to
    * be paged for every one of them. They stay the owner either way.
    */
+  /**
+   * Every team channel this key can raise an alert on.
+   *
+   * The missing half of {@link createChannel}, which is **not idempotent**: a
+   * platform that lost the response to a create had an orphaned channel and no
+   * way to find it. Now it can read back what it already has.
+   *
+   * **Scoped by send access, not by ownership.** Every row carries a
+   * `sendLink`, so the list answers "what can I alert?" — which includes a
+   * channel whose owner granted this person send access, not only the ones they
+   * created. Creating a channel grants its owner send access too, so owned
+   * channels are a subset of this rather than a separate case.
+   *
+   * Channels they merely joined stay absent: being a member means you get
+   * woken, not that you may wake others. Archived channels are left out, since
+   * a link that cannot alert anybody is worse than no link.
+   */
+  async listChannels(): Promise<ProvisionedChannel[]> {
+    const rows = await this.http.request({ method: 'GET', url: this.url('/channels') });
+    return (Array.isArray(rows) ? rows : []).map(parseProvisionedChannel);
+  }
+
   async createChannel(name: string, alertOwner = true): Promise<ProvisionedChannel> {
     const clean = collapse(name ?? '');
     if (!clean) throw new M91ValidationError('channel name is required');
