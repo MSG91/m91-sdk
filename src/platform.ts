@@ -41,7 +41,7 @@ import {
 } from './models.js';
 import { type SendOptions, checkDelivery } from './client.js';
 
-export const DEFAULT_BASE_URL = 'https://m91.msg91.com';
+export const DEFAULT_BASE_URL = 'https://m91-api.msg91.com';
 export const API_KEY_PREFIX = 'm91sk_';
 
 export interface PlatformOptions extends TransportOptions {

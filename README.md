@@ -34,7 +34,7 @@ dependencies, imported only when you call one:
 
 ## Quick start
 
-You need a **send link** — `https://m91.msg91.com/s/<token>` — from the channel
+You need a **send link** — `https://m91-api.msg91.com/s/<token>` — from the channel
 in the M91 app. The token is in the URL path, so the link *is* the credential:
 keep it in the environment, never in the repository.
 
@@ -112,7 +112,7 @@ console.log(builder.build('CPU above 95% on prod-server-3', {
   customId: 'cpu-high-prod3',
   respond: ['On it', 'Escalate'],
 }));
-// https://m91.msg91.com/s/TOKEN?title=CPU+above+95%25+on+prod-server-3&severity=HIGH
+// https://m91-api.msg91.com/s/TOKEN?title=CPU+above+95%25+on+prod-server-3&severity=HIGH
 //   &customId=cpu-high-prod3&respond=On+it%2CEscalate
 ```
 
@@ -173,7 +173,7 @@ stale device token is the difference between waking somebody and waking nobody.
 
 The cases an API key exists for — per-user alerting, per-tenant channels, roster
 sync — and the much larger set where a send link is the right answer, are worked
-through at **<https://m91.msg91.com/docs>**.
+through at **<https://m91-api.msg91.com/docs>**.
 
 ---
 
@@ -408,11 +408,12 @@ Compiles with `tsc` and runs the suite on Node's built-in test runner — no tes
 framework to install. Every test swaps `fetch`; nothing here makes a network
 call, and nothing wakes anybody.
 
-For the SDK against a real socket — a live server, a real poll loop, a real
-timeout — run the demo:
+For the SDK against a real socket — a real send, a real poll loop, a real
+timeout — point an example at your own channel. This wakes a phone:
 
 ```bash
-cd ../demo && python3 run_node_demo.py
+export M91_SEND_LINK='https://m91-api.msg91.com/s/<token>'
+npx tsx examples/basic-alert.ts
 ```
 
 ---
@@ -423,4 +424,4 @@ The `examples/` directory included with the SDK covers a basic alert, the approv
 gate, a LangChain agent, the LangGraph `interrupt()` pattern, a Vercel AI SDK
 agent, and webhook URLs for Grafana and friends.
 
-Full API documentation: **<https://m91.msg91.com/docs>**
+Full API documentation: **<https://m91-api.msg91.com/docs>**

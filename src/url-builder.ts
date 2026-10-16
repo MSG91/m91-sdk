@@ -63,7 +63,7 @@ export function normalizeSendLink(sendLink: string): string {
   // link rather than a mistyped one.
   if (segments.length < 2 || segments[segments.length - 2] !== 's') {
     throw new M91ValidationError(
-      `sendLink must look like https://m91.msg91.com/s/<token> — ` +
+      `sendLink must look like https://m91-api.msg91.com/s/<token> — ` +
         `no /s/<token> found in '${parsed.pathname}'`,
     );
   }

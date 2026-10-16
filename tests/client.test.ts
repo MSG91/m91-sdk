@@ -41,7 +41,7 @@ describe('construction', () => {
   });
 
   it('rejects a link with no /s/ segment', () => {
-    assert.throws(() => new M91Client('https://m91.msg91.com/send/tok_abc'), /\/s\//);
+    assert.throws(() => new M91Client('https://m91-api.msg91.com/send/tok_abc'), /\/s\//);
   });
 
   it('rejects something that is not a URL', () => {

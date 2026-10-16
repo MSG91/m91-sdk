@@ -14,7 +14,7 @@
     "approval",
     "escalation"
   ],
-  "homepage": "https://m91.msg91.com",
+  "homepage": "https://m91-api.msg91.com/docs",
   "repository": { "type": "git", "url": "git+https://github.com/MSG91/m91-sdk.git" },
   "bugs": { "url": "https://github.com/MSG91/m91-sdk/issues" },
   "main": "./dist/src/index.js",

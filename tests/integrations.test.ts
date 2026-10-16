@@ -48,7 +48,7 @@ describe('result strings', () => {
   it('redacts the send link in an error result', () => {
     // A tool result goes into a model's context, and from there into logs,
     // traces and evals.
-    const text = errorResult(new M91NetworkError('failed on https://m91.msg91.com/s/tok_secret'));
+    const text = errorResult(new M91NetworkError('failed on https://m91-api.msg91.com/s/tok_secret'));
     assert.ok(!text.includes('tok_secret'));
     assert.ok(text.includes('/s/***'));
   });

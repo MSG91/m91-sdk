@@ -13,7 +13,7 @@ import {
 import { M91Platform } from '../src/platform.js';
 import { API_KEY, PHONE, Recorder, alertPayload, detailPayload, err, ok } from './helpers.js';
 
-const BASE = 'https://m91.msg91.com/api/v1';
+const BASE = 'https://m91-api.msg91.com/api/v1';
 const platform = (rec: Recorder, baseUrl?: string) =>
   new M91Platform(API_KEY, { ...rec.options, ...(baseUrl ? { baseUrl } : {}) });
 
@@ -225,11 +225,11 @@ describe('closeAlert', () => {
 describe('createChannel', () => {
   it('returns the send link', async () => {
     const rec = new Recorder().push(
-      ok({ _id: 'ch1', name: 'SRE On-Call', sendLink: 'https://m91.msg91.com/s/tok_new' }, 201),
+      ok({ _id: 'ch1', name: 'SRE On-Call', sendLink: 'https://m91-api.msg91.com/s/tok_new' }, 201),
     );
     const channel = await platform(rec).createChannel('SRE On-Call');
     assert.equal(channel.id, 'ch1');
-    assert.equal(channel.sendLink, 'https://m91.msg91.com/s/tok_new');
+    assert.equal(channel.sendLink, 'https://m91-api.msg91.com/s/tok_new');
     assert.deepEqual(rec.last.body, { name: 'SRE On-Call', alertOwner: true });
   });
 

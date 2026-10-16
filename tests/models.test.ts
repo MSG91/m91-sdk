@@ -258,21 +258,21 @@ describe('unwrap', () => {
 
 describe('redact', () => {
   it('replaces the token', () => {
-    assert.equal(redact('https://m91.msg91.com/s/tok_secret'), 'https://m91.msg91.com/s/***');
+    assert.equal(redact('https://m91-api.msg91.com/s/tok_secret'), 'https://m91-api.msg91.com/s/***');
   });
 
   it('drops the query string too', () => {
     // A GET-form send carries the title, and titles name customers and hosts.
     assert.equal(
-      redact('https://m91.msg91.com/s/tok_secret?title=Acme+prod+down'),
-      'https://m91.msg91.com/s/***',
+      redact('https://m91-api.msg91.com/s/tok_secret?title=Acme+prod+down'),
+      'https://m91-api.msg91.com/s/***',
     );
   });
 
   it('leaves subpaths addressable', () => {
     assert.equal(
-      redact('https://m91.msg91.com/s/tok_secret/alerts/disk-full'),
-      'https://m91.msg91.com/s/***/alerts/disk-full',
+      redact('https://m91-api.msg91.com/s/tok_secret/alerts/disk-full'),
+      'https://m91-api.msg91.com/s/***/alerts/disk-full',
     );
   });
 
@@ -280,21 +280,21 @@ describe('redact', () => {
     // A fetch failure can name the URL in its own text, so redacting only the
     // half the SDK writes still ships the token. Found by running the demo.
     const leaky =
-      "request to https://m91.msg91.com/s/tok_62b16becab87 failed, reason: ECONNREFUSED";
+      "request to https://m91-api.msg91.com/s/tok_62b16becab87 failed, reason: ECONNREFUSED";
     const cleaned = redact(leaky);
     assert.ok(!cleaned.includes('tok_62b16becab87'));
     assert.ok(cleaned.includes('ECONNREFUSED'), 'must not eat the rest of the message');
   });
 
   it('masks a token with a query string mid-sentence', () => {
-    const cleaned = redact('failed on https://m91.msg91.com/s/tok_x?title=Acme+down after 3 tries');
+    const cleaned = redact('failed on https://m91-api.msg91.com/s/tok_x?title=Acme+down after 3 tries');
     assert.ok(!cleaned.includes('tok_x'));
     assert.ok(!cleaned.includes('Acme'));
     assert.ok(cleaned.endsWith('after 3 tries'));
   });
 
   it('leaves a URL with no token alone', () => {
-    assert.equal(redact('https://m91.msg91.com/api/v1/alerts'), 'https://m91.msg91.com/api/v1/alerts');
+    assert.equal(redact('https://m91-api.msg91.com/api/v1/alerts'), 'https://m91-api.msg91.com/api/v1/alerts');
   });
 });
 

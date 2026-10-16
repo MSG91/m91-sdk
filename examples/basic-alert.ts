@@ -1,7 +1,7 @@
 /**
  * Raise an alert, then close it when the condition heals.
  *
- *   export M91_SEND_LINK="https://m91.msg91.com/s/your_token"
+ *   export M91_SEND_LINK="https://m91-api.msg91.com/s/your_token"
  *   npx tsx examples/basic-alert.ts
  *
  * The send link is the whole credential. It goes in the environment, never in

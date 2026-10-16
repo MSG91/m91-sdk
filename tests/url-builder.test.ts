@@ -16,7 +16,7 @@ describe('construction', () => {
   });
 
   it('rejects a link with no token', () => {
-    assert.throws(() => new M91URLBuilder('https://m91.msg91.com/s/'), M91ValidationError);
+    assert.throws(() => new M91URLBuilder('https://m91-api.msg91.com/s/'), M91ValidationError);
   });
 
   it('rejects a bare token', () => {

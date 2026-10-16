@@ -7,7 +7,7 @@
  * the stub returns what it was told to.
  */
 
-export const SEND_LINK = 'https://m91.msg91.com/s/tok_test123';
+export const SEND_LINK = 'https://m91-api.msg91.com/s/tok_test123';
 export const API_KEY = 'm91sk_test_abcdef';
 export const PHONE = '919876543210';
 
