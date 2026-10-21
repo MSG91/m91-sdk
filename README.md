@@ -231,6 +231,14 @@ through at **<https://m91-api.msg91.com/docs>**.
 
 ## LangChain
 
+An agent that must not act alone needs a human, and the hard part is not pausing
+— it is **reaching somebody**. `interrupt()` stops the graph and waits for a
+resume that only arrives if a person happens to be watching a dashboard. M91
+fills that half: the tool call rings every phone on a channel at full volume,
+through silent mode and Do Not Disturb, escalating to a voice call if nobody
+answers. The tool returns `"approved"` only when a human tapped **Approve**;
+a rejection, a timeout and an unreachable channel are all a no.
+
 ```ts
 import { M91Client } from 'm91';
 import { createM91ApprovalTool, createM91AlertTool } from 'm91/integrations/langchain';
