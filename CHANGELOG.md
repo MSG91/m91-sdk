@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.1
+
+Metadata only — no code change.
+
+`homepage` pointed at `https://m91.msg91.com`, which does not resolve: that
+host is the static site, and every backend route lives on `m91-api.msg91.com`.
+npm renders `homepage` as a link on the package page and freezes it per
+version, so 1.1.0's link is dead for the life of that version. It now points at
+the documentation.
+
+The package also went out as `@msg91comm/m91` while the repository still said
+`"name": "m91"`, so the next publish would have gone to a different package.
+The repository now matches what is published.
+
+
 ## 1.1.0
 
 Three gaps where the server had grown a field and the SDK had not, so the only

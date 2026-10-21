@@ -1,6 +1,6 @@
 {
   "name": "@msg91comm/m91",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Critical alerting and human-in-the-loop approval for AI agents and on-call systems",
   "type": "module",
   "license": "MIT",
