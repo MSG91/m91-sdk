@@ -1,0 +1,42 @@
+name: publish
+
+# Tag-driven, so a release is a deliberate act with a name rather than a side
+# effect of merging. Tag `v1.1.1` to ship 1.1.1.
+#
+# This exists because 1.1.0 and 1.1.1 were published by hand from one person's
+# laptop: the release depended on them being available, and 1.1.0 went out with
+# a homepage the repository had already corrected, because the upload did not
+# come from the committed tree. A tag build cannot diverge from the commit.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write          # npm provenance — ties the tarball to this commit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci || npm install
+      - run: npm test                        # never ship a red build
+
+      # The tag is the single source of the version: a tag that disagrees with
+      # package.json means somebody bumped one and not the other, and npm would
+      # silently publish the package.json version under the wrong tag name.
+      - name: Tag must match package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          [ "$tag" = "$pkg" ] || { echo "tag $tag != package.json $pkg"; exit 1; }
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
