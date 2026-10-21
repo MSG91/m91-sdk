@@ -7,7 +7,7 @@
  * being wired into something this afternoon and being wired in never.
  */
 
-import { M91URLBuilder } from 'm91';
+import { M91URLBuilder } from '@msg91comm/m91';
 
 const builder = new M91URLBuilder(process.env.M91_SEND_LINK!);
 

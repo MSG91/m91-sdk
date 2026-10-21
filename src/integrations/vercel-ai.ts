@@ -2,8 +2,8 @@
  * Vercel AI SDK tools.
  *
  * ```ts
- * import { M91Client } from 'm91';
- * import { createM91ApprovalTool, createM91AlertTool } from 'm91/integrations/vercel-ai';
+ * import { M91Client } from '@msg91comm/m91';
+ * import { createM91ApprovalTool, createM91AlertTool } from '@msg91comm/m91/integrations/vercel-ai';
  *
  * const client = new M91Client(process.env.M91_SEND_LINK!);
  *
@@ -19,7 +19,7 @@
  * ```
  *
  * The factories are **async** because `ai` is an optional peer dependency,
- * imported only when one of these is called — `npm install m91` stays at zero
+ * imported only when one of these is called — `npm install @msg91comm/m91` stays at zero
  * dependencies.
  */
 

@@ -1,7 +1,7 @@
 /**
  * Framework adapters, re-exported.
  *
- * Each one imports its framework lazily, so `npm install m91` pulls in none of
+ * Each one imports its framework lazily, so `npm install @msg91comm/m91` pulls in none of
  * them and using one you have not installed says which package to install
  * rather than failing with a bare module-not-found from three frames down.
  *

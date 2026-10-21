@@ -8,7 +8,7 @@
  * the repository — the token is in the URL path, so the URL *is* the password.
  */
 
-import { M91Client, M91DeliveryError } from 'm91';
+import { M91Client, M91DeliveryError } from '@msg91comm/m91';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 

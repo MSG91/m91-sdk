@@ -7,7 +7,7 @@
  * it on is recorded, and it clears for everyone else.
  *
  * ```ts
- * import { M91Client } from 'm91';
+ * import { M91Client } from '@msg91comm/m91';
  *
  * const m91 = new M91Client(process.env.M91_SEND_LINK!);
  * await m91.verify();                              // raises nothing; names the channel

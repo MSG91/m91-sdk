@@ -11,8 +11,8 @@
 
 import { Annotation, Command, END, MemorySaver, START, StateGraph, interrupt } from '@langchain/langgraph';
 
-import { M91Client } from 'm91';
-import { M91InterruptNotifier } from 'm91/integrations/langgraph';
+import { M91Client } from '@msg91comm/m91';
+import { M91InterruptNotifier } from '@msg91comm/m91/integrations/langgraph';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 const notifier = new M91InterruptNotifier(client, { severity: 'HIGH', timeoutMs: 600_000 });
@@ -61,7 +61,7 @@ console.log(result.result);
 
 // The same thing as a node, when you would rather the graph own it:
 //
-//   import { createM91ApprovalNode } from 'm91/integrations/langgraph';
+//   import { createM91ApprovalNode } from '@msg91comm/m91/integrations/langgraph';
 //   builder.addNode('approveRefund', createM91ApprovalNode(client, {
 //     approveLabel: 'Process Refund', rejectLabel: 'Hold Refund', timeoutMs: 600_000,
 //   }));

@@ -7,7 +7,7 @@
  * answered.
  */
 
-import { M91Client } from 'm91';
+import { M91Client } from '@msg91comm/m91';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 

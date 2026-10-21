@@ -11,7 +11,7 @@ behaviour for almost everything, and the wrong behaviour when somebody has to
 act now.
 
 ```bash
-npm install m91
+npm install @msg91comm/m91
 ```
 
 Node 18+. **Zero dependencies** — native `fetch`, nothing else.
@@ -39,7 +39,7 @@ in the M91 app. The token is in the URL path, so the link *is* the credential:
 keep it in the environment, never in the repository.
 
 ```ts
-import { M91Client } from 'm91';
+import { M91Client } from '@msg91comm/m91';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 
@@ -155,7 +155,7 @@ UptimeRobot, Zapier, a GitHub Action, a cron `curl`, an iOS Shortcut, a browser
 bookmark.
 
 ```ts
-import { M91URLBuilder } from 'm91';
+import { M91URLBuilder } from '@msg91comm/m91';
 
 const builder = new M91URLBuilder(process.env.M91_SEND_LINK!);
 
@@ -187,7 +187,7 @@ For a product that discovers its users at runtime, where a per-team send link
 does not fit. Needs an API key (`m91sk_…`), minted from the app.
 
 ```ts
-import { M91Platform } from 'm91';
+import { M91Platform } from '@msg91comm/m91';
 
 const platform = new M91Platform(process.env.M91_API_KEY!);
 
@@ -240,8 +240,8 @@ answers. The tool returns `"approved"` only when a human tapped **Approve**;
 a rejection, a timeout and an unreachable channel are all a no.
 
 ```ts
-import { M91Client } from 'm91';
-import { createM91ApprovalTool, createM91AlertTool } from 'm91/integrations/langchain';
+import { M91Client } from '@msg91comm/m91';
+import { createM91ApprovalTool, createM91AlertTool } from '@msg91comm/m91/integrations/langchain';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 
@@ -254,7 +254,7 @@ const agent = createReactAgent({ llm, tools, prompt: SYSTEM });
 ```
 
 The factories are async because `@langchain/core` is imported only when you call
-one — that is what keeps `npm install m91` at zero dependencies, which matters
+one — that is what keeps `npm install @msg91comm/m91` at zero dependencies, which matters
 for a package whose job is to work when everything else is on fire.
 
 The tool descriptions tell the model when to reach for each one. Your system
@@ -284,7 +284,7 @@ LangGraph knows how to stop a graph and resume it. What it has no opinion about
 is how the human finds out it stopped. M91 is the part in between.
 
 ```ts
-import { M91InterruptNotifier } from 'm91/integrations/langgraph';
+import { M91InterruptNotifier } from '@msg91comm/m91/integrations/langgraph';
 
 const notifier = new M91InterruptNotifier(client, { timeoutMs: 600_000 });
 
@@ -299,7 +299,7 @@ if (result.__interrupt__) {
 Or let the graph own it:
 
 ```ts
-import { createM91ApprovalNode } from 'm91/integrations/langgraph';
+import { createM91ApprovalNode } from '@msg91comm/m91/integrations/langgraph';
 
 builder.addNode('approveRefund', createM91ApprovalNode(client, {
   approveLabel: 'Process Refund',
@@ -316,7 +316,7 @@ The node reads `title` (or `question`) and `customId` from state, and writes
 ## Vercel AI SDK
 
 ```ts
-import { createM91ApprovalTool, createM91AlertTool } from 'm91/integrations/vercel-ai';
+import { createM91ApprovalTool, createM91AlertTool } from '@msg91comm/m91/integrations/vercel-ai';
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -341,7 +341,7 @@ a person and is expected to change.
 import {
   M91AuthError, M91ChannelEmptyError, M91DeliveryError, M91Error,
   M91NetworkError, M91RateLimitError, M91ServerError, M91ValidationError,
-} from 'm91';
+} from '@msg91comm/m91';
 
 try {
   await client.send('Payments API is down', { severity: 'CRITICAL', customId: 'payments-down' });

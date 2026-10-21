@@ -8,8 +8,8 @@
  * - the alert tool does not. It wakes somebody and carries on.
  *
  * ```ts
- * import { M91Client } from 'm91';
- * import { createM91ApprovalTool, createM91AlertTool } from 'm91/integrations/langchain';
+ * import { M91Client } from '@msg91comm/m91';
+ * import { createM91ApprovalTool, createM91AlertTool } from '@msg91comm/m91/integrations/langchain';
  *
  * const client = new M91Client(process.env.M91_SEND_LINK!);
  * const tools = [

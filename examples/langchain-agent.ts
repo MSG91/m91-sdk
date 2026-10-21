@@ -9,8 +9,8 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 
-import { M91Client } from 'm91';
-import { createM91AlertTool, createM91ApprovalTool } from 'm91/integrations/langchain';
+import { M91Client } from '@msg91comm/m91';
+import { createM91AlertTool, createM91ApprovalTool } from '@msg91comm/m91/integrations/langchain';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 

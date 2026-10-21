@@ -5,8 +5,8 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 
-import { M91Client } from 'm91';
-import { createM91AlertTool, createM91ApprovalTool } from 'm91/integrations/vercel-ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91AlertTool, createM91ApprovalTool } from '@msg91comm/m91/integrations/vercel-ai';
 
 const client = new M91Client(process.env.M91_SEND_LINK!);
 
