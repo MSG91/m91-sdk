@@ -79,6 +79,58 @@ only when somebody tapped **Approve**. A rejection, a timeout and an unreachable
 channel all resolve `false` or throw — there is no configuration under which
 silence means yes.
 
+### Asking for a reason, not just a tap
+
+An option can require something before it can be chosen. `required` blocks the
+button until it is supplied; `optional` offers a skippable field.
+
+```ts
+await client.send('Agent wants to refund ₹48,000 on order ORD-40122', {
+  customId: 'refund-ORD-40122',
+  responseOptions: [
+    { label: 'Approve', effect: 'SHARED' },
+    { label: 'Reject',  effect: 'SHARED', required: ['note'] },
+    { label: 'Need the delivery photo', effect: 'SHARED', optional: ['attachment'] },
+  ],
+});
+```
+
+Only two things can be asked for: `'note'` and `'attachment'`. Requiring a note
+on the rejection is the difference between your code learning *no* and learning
+*why* — worth it on any branch that has to explain itself to a customer later.
+
+Two more fields on `send`:
+
+- **`attachments`** — https links to files the alert is about, shown on the
+  alert screen. URLs, never bytes.
+- **`other`** — whether the free-text "Something else" reply is offered. Leave
+  it unset and the server's default (on) stands; set `false` when the answer
+  must be one of your options.
+
+### `callbackUrl` instead of polling
+
+`waitForDecision` and `requestApproval` poll. For a service that is already
+listening on a URL, hand M91 the URL instead and the outcome is POSTed to it
+when somebody answers:
+
+```ts
+await client.send('Agent wants to refund ₹48,000 on order ORD-40122', {
+  customId: 'refund-ORD-40122',
+  callbackUrl: 'https://your-service.example.com/hooks/m91',
+  responseOptions: [{ label: 'Approve', effect: 'SHARED' },
+                    { label: 'Reject',  effect: 'SHARED', required: ['note'] }],
+});
+```
+
+**It will not reach your laptop.** The callback is fetched by M91's servers and
+private addresses are refused — `localhost`, `127.0.0.1`, `10.x`, `192.168.x`
+and the rest — so local development and anything inside a VPC has to poll. Use
+a tunnel, or keep `waitForDecision` for development and the callback in
+production.
+
+You still own the timeout either way. There is no server-side expiry: decide
+what silence means before you send, and make it the safe answer.
+
 ---
 
 ## Severity
@@ -361,7 +413,7 @@ alert, and repeating it is how one condition wakes a team four times.
 | `close({ customId? , alertId? }): Promise<boolean>` | Close it. Exactly one id. |
 | `requestApproval(title, options): Promise<boolean>` | Send, wait, close. |
 
-`SendOptions`: `{ description?, severity?, customId?, isAutoClose?, responseOptions? }`
+`SendOptions`: `{ description?, severity?, customId?, isAutoClose?, responseOptions?, other?, attachments?, callbackUrl? }`
 `WaitOptions`: `{ timeoutMs?, pollIntervalMs?, throwOnTimeout? }`
 `ApprovalOptions`: `{ customId, description?, severity?, approveLabel?, rejectLabel?, timeoutMs?, pollIntervalMs?, timeoutMeansReject? }`
 
@@ -375,6 +427,7 @@ alert, and repeating it is how one condition wakes a team four times.
 | `alertPerson(phone, title, options?): Promise<AlertResponse>` | Wake one person. |
 | `getAlert(alertId, phone): Promise<AlertDetail \| null>` | Read what they decided. |
 | `closeAlert(phone, { customId? , alertId? }): Promise<boolean>` | Close their alert. |
+| `listChannels(): Promise<ProvisionedChannel[]>` | Every channel this key owns. |
 | `createChannel(name, alertOwner?): Promise<ProvisionedChannel>` | **Not idempotent.** Store the result. |
 | `addMembers(channelId, phones): Promise<InviteResult>` | Up to 500 per call. |
 | `removeMember(channelId, phone): Promise<boolean>` | Take them off the roster. |
@@ -390,7 +443,7 @@ alert, and repeating it is how one condition wakes a team four times.
 ### Types
 
 `Severity` · `Effect` · `AlertStatus` · `RecipientState` · `ResponseOption` ·
-`Decision` · `AlertResponse` · `AlertDetail` · `ChannelInfo` · `Recipient` ·
+`Collectable` · `Attachment` · `Decision` · `AlertResponse` · `AlertDetail` · `ChannelInfo` · `Recipient` ·
 `ProvisionedChannel` · `InviteResult` · `ApiKeyInfo`
 
 Helpers: `isApproved(decision, approveLabel?)` · `validatePhone(phone)` ·
