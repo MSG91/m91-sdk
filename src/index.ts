@@ -88,4 +88,4 @@ export type {
  * written twice — and it drifted, reporting 1.0.0 while the package shipped as
  * 1.1.0. A test is what makes two copies safe.
  */
-export const VERSION = '1.1.1';
+export const VERSION = '1.2.0';

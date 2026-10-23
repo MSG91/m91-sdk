@@ -222,3 +222,107 @@ export async function runAlert(
     return errorResult(error);
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Gating a framework's own tool calls                                       */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * One tool call a framework is about to make, in the only three fields every
+ * framework agrees on.
+ */
+export interface GatedCall {
+  toolName: string;
+  input: unknown;
+  /** The framework's id for this call. Becomes the alert's customId. */
+  callId: string;
+}
+
+/** How a gate decides who gets asked, and how the question reads. */
+export interface GateOptions extends ApprovalDefaults {
+  /**
+   * Which tool calls need a human: a list of tool names, or a predicate.
+   *
+   * Required where a framework routes every call through the gate (Claude
+   * Agent SDK, Google ADK, Vercel `toolApproval`): ringing somebody's phone
+   * for every file read is how a channel gets muted.
+   */
+  tools?: readonly string[] | ((toolName: string, input: unknown) => boolean | Promise<boolean>);
+  /** Write the lock-screen question yourself. Default: "Allow <tool>?" plus the arguments. */
+  describe?: (call: GatedCall) => { title: string; description?: string };
+}
+
+export interface GateDecision {
+  approved: boolean;
+  /** Why, in words a model can repeat to the user. */
+  reason: string;
+}
+
+/** Does this call need a human? With no `tools`, every call that reaches the gate does. */
+export async function needsHuman(
+  options: GateOptions,
+  toolName: string,
+  input: unknown,
+): Promise<boolean> {
+  const { tools } = options;
+  if (tools === undefined) return true;
+  if (typeof tools === 'function') return Boolean(await tools(toolName, input));
+  return tools.includes(toolName);
+}
+
+/** A customId M91 accepts, stable across a framework's retries of the same call. */
+export function gateCustomId(call: GatedCall): string {
+  const raw = `tool-${call.toolName}-${call.callId}`;
+  return raw.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 100);
+}
+
+function defaultQuestion(call: GatedCall): { title: string; description: string } {
+  let args: string;
+  try {
+    args = JSON.stringify(call.input, null, 2) ?? '';
+  } catch {
+    args = String(call.input);
+  }
+  if (args.length > 1500) args = `${args.slice(0, 1500)}\n… (truncated)`;
+  return {
+    title: `Allow the agent to run ${call.toolName}?`,
+    description: `The agent wants to call ${call.toolName} with:\n${args}`,
+  };
+}
+
+/**
+ * Ring a phone about a tool call and wait for the answer.
+ *
+ * Fails closed: an M91 error, an unreachable channel or a timeout is a no,
+ * with the reason spelled out, never a silent yes.
+ */
+export async function decideToolCall(
+  client: M91Client,
+  call: GatedCall,
+  options: GateOptions = {},
+): Promise<GateDecision> {
+  const question = options.describe ? options.describe(call) : defaultQuestion(call);
+  try {
+    const approved = await client.requestApproval(question.title, {
+      customId: gateCustomId(call),
+      description: question.description,
+      severity: options.severity ?? 'HIGH',
+      approveLabel: options.approveLabel ?? 'Approve',
+      rejectLabel: options.rejectLabel ?? 'Reject',
+      timeoutMs: (options.timeoutSeconds ?? 300) * 1000,
+    });
+    return approved
+      ? { approved: true, reason: 'Approved by a human via M91.' }
+      : {
+          approved: false,
+          reason:
+            'A human rejected this action via M91 (or did not answer in time). ' +
+            'Do not retry it; tell the user it was not approved.',
+        };
+  } catch (error) {
+    return {
+      approved: false,
+      reason: `Could not get human approval via M91, so the action was not run. ${errorResult(error)}`,
+    };
+  }
+}

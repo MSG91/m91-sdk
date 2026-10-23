@@ -25,10 +25,14 @@ dependencies, imported only when you call one:
 
 | For | Install alongside |
 |---|---|
-| `m91` — client, platform, URL builder | nothing |
-| `m91/integrations/langchain` | `@langchain/core` |
-| `m91/integrations/langgraph` | nothing — it wraps the client, not the graph |
-| `m91/integrations/vercel-ai` | `ai` |
+| `@msg91comm/m91` — client, platform, URL builder | nothing |
+| `@msg91comm/m91/integrations/langchain` | `@langchain/core` |
+| `@msg91comm/m91/integrations/langgraph` | nothing — it wraps the client, not the graph |
+| `@msg91comm/m91/integrations/vercel-ai` | `ai` (v5 or later) |
+| `@msg91comm/m91/integrations/openai-agents` | `@openai/agents` |
+| `@msg91comm/m91/integrations/claude-agent-sdk` | `@anthropic-ai/claude-agent-sdk`, `zod` |
+| `@msg91comm/m91/integrations/google-adk` | `@google/adk`, `zod` |
+| `@msg91comm/m91/integrations/mastra` | `@mastra/core`, `zod` |
 
 ---
 
@@ -250,7 +254,7 @@ const tools = [
   await createM91AlertTool(client),     // wakes somebody, carries on
   ...myTools,
 ];
-const agent = createReactAgent({ llm, tools, prompt: SYSTEM });
+const agent = createAgent({ model: 'openai:gpt-5-mini', tools, systemPrompt: SYSTEM });  // from 'langchain'
 ```
 
 The factories are async because `@langchain/core` is imported only when you call
@@ -275,6 +279,37 @@ await createM91ApprovalTool(client, {
   timeoutSeconds: 900,
 });
 ```
+
+---
+
+### `humanInTheLoopMiddleware` and Deep Agents
+
+LangChain's `humanInTheLoopMiddleware` (and Deep Agents' `interruptOn`, which is
+built on it) pauses the run before the tools you name and waits for
+`{ decisions: [...] }`. `invokeWithM91Approvals` answers each pause on a phone
+and resumes the same thread:
+
+```ts
+import { createDeepAgent } from 'deepagents';
+import { MemorySaver } from '@langchain/langgraph';
+import { invokeWithM91Approvals } from '@msg91comm/m91/integrations/langchain';
+
+const agent = createDeepAgent({
+  interruptOn: { write_file: true, edit_file: true, execute: true },
+  checkpointer: new MemorySaver(),
+});
+
+const result = await invokeWithM91Approvals(
+  agent,
+  { messages: [{ role: 'user', content: 'Write the release notes to RELEASE.md.' }] },
+  { configurable: { thread_id: 'release-v2.4' } },
+  client,
+);
+```
+
+The same call works for `createAgent({ middleware: [humanInTheLoopMiddleware({ interruptOn })] })`.
+Running your own loop? `resolveHITLWithM91(result.__interrupt__[0].value, client)`
+returns the `{ decisions }` to pass to `new Command({ resume })`.
 
 ---
 
@@ -315,22 +350,146 @@ The node reads `title` (or `question`) and `customId` from state, and writes
 
 ## Vercel AI SDK
 
+Two ways in. **Tools** the model calls when it decides to ask:
+
 ```ts
-import { createM91ApprovalTool, createM91AlertTool } from '@msg91comm/m91/integrations/vercel-ai';
+import { generateText, isStepCount } from 'ai';
+import { createM91Tools } from '@msg91comm/m91/integrations/vercel-ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o'),
-  tools: {
-    m91_request_approval: await createM91ApprovalTool(client),
-    m91_send_alert: await createM91AlertTool(client),
-  },
-  stopWhen: stepCountIs(10),
+  model: 'openai/gpt-5-mini',
+  tools: { ...(await createM91Tools(client)) },
+  stopWhen: isStepCount(10),
   prompt: 'Verify the GDPR deletion request for acct_8821 and action it.',
+});
+```
+
+**A gate** on your own tools, through the AI SDK's `toolApproval` option. The
+named tools ring a phone before they run; the model cannot skip it.
+
+```ts
+import { createM91ToolApproval } from '@msg91comm/m91/integrations/vercel-ai';
+
+await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund, deleteUser },
+  toolApproval: createM91ToolApproval(client, { tools: ['issueRefund', 'deleteUser'] }),
+  stopWhen: isStepCount(10),
+  prompt: 'Refund ORD-40122.',
 });
 ```
 
 ---
 
+## OpenAI Agents SDK
+
+Mark risky tools `needsApproval: true`. `runWithM91Approvals` answers every
+pause on a phone and resumes the same run.
+
+```ts
+import { Agent, tool } from '@openai/agents';
+import { runWithM91Approvals } from '@msg91comm/m91/integrations/openai-agents';
+
+const issueRefund = tool({
+  name: 'issue_refund',
+  description: 'Refund an order.',
+  parameters: z.object({ orderId: z.string(), amount: z.number() }),
+  needsApproval: true,
+  execute: async ({ orderId, amount }) => refunds.create(orderId, amount),
+});
+
+const agent = new Agent({ name: 'Support', instructions: 'Resolve refund requests.', tools: [issueRefund] });
+const result = await runWithM91Approvals(agent, 'Refund ORD-40122, it never arrived.', client);
+console.log(result.finalOutput);
+```
+
+Running your own loop? `approveInterruptionsWithM91(result, client)` decides the
+pending approvals on `result.state`; then call `run(agent, result.state)`.
+`createM91Tools(client)` gives the agent the two tools as well.
+
+---
+
+## Claude Agent SDK
+
+```ts
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { createM91CanUseTool, createM91McpServer } from '@msg91comm/m91/integrations/claude-agent-sdk';
+
+for await (const message of query({
+  prompt: 'Delete the stale feature branches and deploy main.',
+  options: {
+    // Bash and Write ring a phone first; every other tool runs as normal.
+    canUseTool: createM91CanUseTool(client, { tools: ['Bash', 'Write'] }),
+    // Optional: let Claude decide to ask, or to wake somebody.
+    mcpServers: { m91: await createM91McpServer(client) },
+  },
+})) {
+  if (message.type === 'result') console.log(message);
+}
+```
+
+`canUseTool` only runs when the SDK would otherwise ask. To gate a tool in every
+permission mode, including `bypassPermissions`, pass
+`hooks: { PreToolUse: createM91PreToolUseHook(client, { tools: ['Bash'] }) }`.
+
+---
+
+## Google ADK
+
+```ts
+import { LlmAgent } from '@google/adk';
+import { createM91BeforeToolCallback, createM91Tools } from '@msg91comm/m91/integrations/google-adk';
+
+const agent = new LlmAgent({
+  name: 'support_agent',
+  model: 'gemini-2.5-flash',
+  instruction: 'Resolve refund requests.',
+  tools: [issueRefund, ...(await createM91Tools(client))],
+  // issue_refund rings a phone first. A rejection skips the tool and tells the agent why.
+  beforeToolCallback: createM91BeforeToolCallback(client, { tools: ['issue_refund'] }),
+});
+```
+
+---
+
+## Mastra
+
+```ts
+import { Agent } from '@mastra/core/agent';
+import { createTool } from '@mastra/core/tools';
+import { generateWithM91Approvals } from '@msg91comm/m91/integrations/mastra';
+
+const issueRefund = createTool({
+  id: 'issue-refund',
+  description: 'Refund an order.',
+  inputSchema: z.object({ orderId: z.string(), amount: z.number() }),
+  requireApproval: true,
+  execute: async ({ orderId, amount }) => refunds.create(orderId, amount),
+});
+
+const agent = new Agent({
+  id: 'support', name: 'Support', instructions: 'Resolve refund requests.',
+  model: 'openai/gpt-5-mini', tools: { issueRefund },
+});
+
+const output = await generateWithM91Approvals(agent, 'Refund ORD-40122.', client);
+console.log(output.text);
+```
+
+Mastra keeps suspended runs in storage, so configure a storage provider on your
+`Mastra` instance.
+
+---
+
+### Which tools ring a phone
+
+Every gate takes `tools`: a list of tool names, or a predicate
+(`(name, input) => boolean`). Gates fail closed: a rejection, no answer within
+`timeoutSeconds` (default 300) or an M91 error means the tool does not run, and
+the agent is told why. Write the lock-screen text yourself with
+`describe: (call) => ({ title, description })`.
+
+---
 
 ## Error handling
 
@@ -483,6 +642,7 @@ npx tsx examples/basic-alert.ts
 
 The `examples/` directory included with the SDK covers a basic alert, the approval
 gate, a LangChain agent, the LangGraph `interrupt()` pattern, a Vercel AI SDK
-agent, and webhook URLs for Grafana and friends.
+agent, OpenAI Agents, Claude Agent SDK, Google ADK and Mastra agents gated by
+M91, and webhook URLs for Grafana and friends.
 
 Full API documentation: **<https://m91-api.msg91.com/docs>**

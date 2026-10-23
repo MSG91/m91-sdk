@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+- **OpenAI Agents SDK** (`@msg91comm/m91/integrations/openai-agents`): `runWithM91Approvals` answers every `needsApproval` interruption on a phone and resumes the run; `approveInterruptionsWithM91` for your own loop; `createM91Tools`.
+- **Claude Agent SDK** (`@msg91comm/m91/integrations/claude-agent-sdk`): `createM91CanUseTool` (a `canUseTool` callback), `createM91PreToolUseHook` (gates in every permission mode), and `createM91McpServer` (the two tools as an in-process MCP server).
+- **Google ADK for TypeScript** (`@msg91comm/m91/integrations/google-adk`): `createM91BeforeToolCallback` gates named tools; `createM91Tools` as `FunctionTool`s.
+- **Mastra** (`@msg91comm/m91/integrations/mastra`): `generateWithM91Approvals` answers `requireApproval` suspensions; `createM91Tools`.
+- **Vercel AI SDK**: `createM91ToolApproval`, a `toolApproval` function that rings a phone before the tools you name run.
+- **LangChain `humanInTheLoopMiddleware` and Deep Agents** (`@msg91comm/m91/integrations/langchain`): `invokeWithM91Approvals` answers each `interruptOn` pause on a phone and resumes with `Command({ resume: { decisions } })`; `resolveHITLWithM91` builds the decisions for your own loop.
+- `decideToolCall`, `GateOptions`: the shared fail-closed gate every adapter above uses.
+
+### Fixed
+- Vercel AI SDK tool factories return `Tool` / `ToolSet`, and LangChain's return `DynamicStructuredTool`, instead of `unknown`, so they type-check in `generateText({ tools })` and `createAgent({ tools })`. Runtime behaviour is unchanged.
+- The `ai` peer range is `>=5.0.0`, matching the `inputSchema` tool format.
+- Docs and docstrings use the published package name (`@msg91comm/m91`) and current APIs (`createAgent`, `isStepCount`).
+
+## Fixed
+- `@msg91comm/m91/integrations/vercel-ai`: `createM91ApprovalTool`, `createM91AlertTool` and `createM91Tools` are now typed as the AI SDK's `Tool` / `ToolSet` instead of `unknown`, so they type-check inside `generateText({ tools })`. Runtime behaviour is unchanged.
+- The `ai` peer dependency range is now `>=5.0.0`, matching the `inputSchema` tool format these factories use.
+
 ## 1.1.1
 
 Metadata only — no code change.
